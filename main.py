@@ -9,8 +9,12 @@ import discord
 from discord.ext import commands
 import time
 from discord import app_commands
+from discord.ext.commands.parameters import Author
 import names
 from monsters.monsters import Monster, monsters
+from dndbeyond_websearch import Searcher
+import requests
+from bs4 import BeautifulSoup
 # required discord stuff
 
 intents = discord.Intents.default()
@@ -39,7 +43,7 @@ async def on_message(message):
         args = message.content.split()
         
         if len(args) < 2:
-            await message.reply('Please specify the number of dice and sides (e.g., 2d10)')
+            await message.reply('Please specify the number of dice and sides (e.g., 2d12)')
             return
 
         roll_description = args[1]
@@ -145,7 +149,7 @@ async def on_message(message):
         response_name_type = "Full Name" if full_name else "First Name"
         await message.channel.send(f'Generated {response_gender.capitalize()} {response_name_type}: {generated_name}')
 
-
+# defeat command
     if message.content.startswith(f'{p}defeat'):
         rest = message.content[len(f'{p}defeat'):].strip().lower()
         if not rest:
@@ -164,6 +168,46 @@ async def on_message(message):
             embed.set_image(url=monster.image)
             await message.channel.send(embed=embed)
 
+
+    if message.content.startswith(f'{p}get_character_sheet'):
+        # Extract the URL from the message
+        try:
+          url = message.content.split(' ')[1]
+        except IndexError as e:
+          await message.channel.send(f'Please include a url in `{p}get_character_sheet`')
+
+        # Fetch the D&D Beyond character sheet
+        character_sheet = fetch_character_sheet(url)
+
+        if character_sheet:
+            await message.channel.send(character_sheet)
+        else:
+            await message.channel.send("Unable to retrieve character sheet.")
+
+def fetch_character_sheet(url):
+    try:
+        # Fetch the HTML content of the D&D Beyond page
+        response = requests.get(url)
+        response.raise_for_status()
+
+        # Parse the HTML with BeautifulSoup
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        # Extract character sheet information here
+        # Example: character_name = soup.find('div', class_='character-name').text
+
+        # Create a formatted character sheet string
+        character_sheet = "Character Sheet Data Here"
+
+        return character_sheet
+
+    except Exception as e:
+        print(f"Error fetching character sheet: {str(e)}")
+        return None
+
+
+        
+
 #
 
 
@@ -172,4 +216,5 @@ async def on_message(message):
 
 
 # Your bot token goes here
-client.run('MTE1MDA0NjU5ODMyNDMxMDA5Ng.GdYkyH._-u4GoYt0JtfhMAPHu1vfIHoOIwcosONX6gfU4')
+token = os.environ['token']
+client.run(token)

@@ -8,6 +8,9 @@ authors = ["Your Name <you@example.com>"]
 python = ">=3.10.0,<3.11"
 discord = "^2.3.2"
 names = "^0.3.0"
+dndbeyond-websearch = "^0.2"
+requests = "^2.31.0"
+selenium = "^4.12.0"
 
 [tool.pyright]
 # https://github.com/microsoft/pyright/blob/main/docs/configuration.md
