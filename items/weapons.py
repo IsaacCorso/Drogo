@@ -1,12 +1,13 @@
 class Weapon:
-    def   __init__  (self, name, catagorie, cost, damage, weight, properties):
+    def   __init__  (self, name, category, cost, damage, weight, properties):
         self.name = name
-        self.catagorie = catagorie
+        self.category = category
         self.cost = cost
         self.damage = damage
         self.weight = weight
         self.properties = properties
-
+    def __str__ (self):
+        return f'Name: {self.name}\nCategory: {self.category} \nCost: {self.cost} \nDamage: {self.damage} \nWeight: {self.weight} \nProperties: {self.properties}'
 
 weapons = {
   

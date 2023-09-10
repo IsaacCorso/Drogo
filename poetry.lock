@@ -495,6 +495,20 @@ files = [
 ]
 
 [[package]]
+name = "items"
+version = "0.6.5"
+description = "Attribute accessible dicts and collections thereof"
+optional = false
+python-versions = "*"
+files = [
+    {file = "items-0.6.5-py3-none-any.whl", hash = "sha256:865ab5ed9782f979e3d3984a18d8233aea77f88e24d54a1f1d29d3d22ef31ad9"},
+    {file = "items-0.6.5.tar.gz", hash = "sha256:ad7fb0b8369c5ea1b1e8b83104210cfff39710e6fa794659cab12f856abae393"},
+]
+
+[package.dependencies]
+nulltype = ">=2.3.1"
+
+[[package]]
 name = "multidict"
 version = "6.0.4"
 description = "multidict implementation"
@@ -585,6 +599,17 @@ optional = false
 python-versions = "*"
 files = [
     {file = "names-0.3.0.tar.gz", hash = "sha256:726e46254f2ed03f1ffb5d941dae3bc67c35123941c29becd02d48d0caa2a671"},
+]
+
+[[package]]
+name = "nulltype"
+version = "2.3.1"
+description = "Null values and sentinels like (but not) None, False & True"
+optional = false
+python-versions = "*"
+files = [
+    {file = "nulltype-2.3.1-py2.py3-none-any.whl", hash = "sha256:16ae565745118e37e0558441f5821c76351d8c3a789640b5bca277cf65b2271b"},
+    {file = "nulltype-2.3.1.zip", hash = "sha256:64aa3cb2ab5e904d1b37175b9b922bea268c13f9ce32e3d373313150ab5ef272"},
 ]
 
 [[package]]
@@ -855,4 +880,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10.0,<3.11"
-content-hash = "30eeee379545aff579a4ff52610320a21b8e6f60e27393342de962c0a68a0779"
+content-hash = "bbbd25bbdaa4e2cd050d0ce6a665d134c129a5b88a4572adda3f642fca479a23"

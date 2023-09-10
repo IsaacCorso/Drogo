@@ -1,9 +1,10 @@
 class AdventureGear:
-    def   __init__  (self, name, cost, weight):
+    def __init__  (self, name, cost, weight):
         self.name = name
         self.cost = cost
         self.weight = weight
-
+    def __str__ (self):
+        return f'Name: {self.name} \nCost: {self.cost} \nWeight: {self.weight}'
 
 adventuregear = {
     'abacus': AdventureGear('Abacus', '2 gp', '2 lb'),

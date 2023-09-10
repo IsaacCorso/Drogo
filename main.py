@@ -15,6 +15,9 @@ from monsters.monsters import Monster, monsters
 from dndbeyond_websearch import Searcher
 import requests
 from bs4 import BeautifulSoup
+from items.adventuregear import AdventureGear, adventuregear
+from items.armor import Armor, armor
+from items.weapons import Weapon, weapons
 # required discord stuff
 
 intents = discord.Intents.default()
@@ -23,6 +26,8 @@ intents.message_content = True
 client = discord.Client(intents=intents)
 # defining prefix
 p = 'a&'
+embedfooter = 'Drogo Alpha'
+
 # console logging turning on
 
 
@@ -169,44 +174,67 @@ async def on_message(message):
             await message.channel.send(embed=embed)
 
 
-    if message.content.startswith(f'{p}get_character_sheet'):
-        # Extract the URL from the message
-        try:
-          url = message.content.split(' ')[1]
-        except IndexError as e:
-          await message.channel.send(f'Please include a url in `{p}get_character_sheet`')
+#    if message.content.startswith(f'{p}get_character_sheet'):
+#         # Extract the URL from the message
+#         try:
+#           url = message.content.split(' ')[1]
+#         except IndexError as e:
+#           await message.channel.send(f'Please include a url in `{p}get_character_sheet`')
 
-        # Fetch the D&D Beyond character sheet
-        character_sheet = fetch_character_sheet(url)
+#         # Fetch the D&D Beyond character sheet
+#         character_sheet = fetch_character_sheet(url)
 
-        if character_sheet:
-            await message.channel.send(character_sheet)
-        else:
-            await message.channel.send("Unable to retrieve character sheet.")
+#         if character_sheet:
+#             await message.channel.send(character_sheet)
+#         else:
+#             await message.channel.send("Unable to retrieve character sheet.")
 
-def fetch_character_sheet(url):
-    try:
-        # Fetch the HTML content of the D&D Beyond page
-        response = requests.get(url)
-        response.raise_for_status()
+#         def fetch_character_sheet(url):
+#             try:
+#                 # Fetch the HTML content of the D&D Beyond page
+#                 response = requests.get(url)
+#                 response.raise_for_status()
 
-        # Parse the HTML with BeautifulSoup
-        soup = BeautifulSoup(response.text, 'html.parser')
+#                 # Parse the HTML with BeautifulSoup
+#                 soup = BeautifulSoup(response.text, 'html.parser')
 
-        # Extract character sheet information here
-        # Example: character_name = soup.find('div', class_='character-name').text
+#                 # Extract character sheet information here
+#                 # Example: character_name = soup.find('div', class_='character-name').text
 
-        # Create a formatted character sheet string
-        character_sheet = "Character Sheet Data Here"
+#                 # Create a formatted character sheet string
+#                 character_sheet = "Character Sheet Data Here"
 
-        return character_sheet
+#                 return character_sheet
 
-    except Exception as e:
-        print(f"Error fetching character sheet: {str(e)}")
-        return None
+#             except Exception as e:
+#                 print(f"Error fetching character sheet: {str(e)}")
+#                 return None
 
+  
+    if message.content.startswith(f'{p}item'):
+      rest = message.content[len(f'{p}item'):].strip().lower()
+      if not rest:
+          await message.channel.send(f"Please specify an item name after `{p}itemlookup`.")
+          return
 
-        
+    # Check if the item exists in the adventure_gear dictionary
+      item = adventuregear.get(rest)
+      if not item:
+        item = armor.get(rest)
+      if not item:
+        item = weapons.get(rest)
+      if item:
+            embed = discord.Embed(
+                title=f'Info on {item.name}:',
+                #description=f'Name: {item.name} \nCost: {item.cost} \nWeight: {item.weight}',
+                description=f'{item}',
+                color=discord.Color.gold(),
+                timestamp=message.created_at,
+            )
+            await message.channel.send(embed=embed)
+
+      else:
+          await message.channel.send(f'Cannot find item: `{rest}`')
 
 #
 
