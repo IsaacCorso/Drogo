@@ -9,11 +9,8 @@ class Monster:
         else:
             self.image = image
 
-# : Monsters = {
-#     "aarakocra": Monster("Aarakocra", 50, 13, 12, "https://www.dndbeyond.com/avatars/thumbnails/7/622/420/618/636286750209394240.png"),
-#     "aboleth": Monster("Aboleth", 5900, 135, 17, "https://www.dndbeyond.com/avatars/thumbnails/0/11/1000/1000/636238825975375671.jpeg"),
-#     "deva": Monster("Deva", 5900, 136, 17, "https://www.dndbeyond.com/avatars/thumbnails/0/267/1000/1000/636252768980059444.jpeg"),
-#     "planetar": Monster("Planetar", 15000, 200, 19, "https://www.dndbeyond.com/avatars/thumbnails/0/303/1000/1000/636252771762002496.jpeg"),
+    def __str__ (self):
+        return f'Name: {self.name}\nCategory: {self.xp} \nCost: {self.hp} \nDamage: {self.ac}'
 
 
 

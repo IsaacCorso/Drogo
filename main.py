@@ -27,7 +27,6 @@ intents.message_content = True
 client = discord.Client(intents=intents)
 # defining prefix
 p = 'a&'
-embedfooter = 'Drogo Alpha'
 
 # console logging turning on
 
@@ -258,6 +257,41 @@ async def on_message(message):
 
       else:
           await message.channel.send(f'Cannot find race: `{rest}`')
+
+
+
+
+# lookup command
+    if message.content.startswith(f'{p}lookup'):
+      rest = message.content[len(f'{p}lookup'):].strip().lower()
+      if not rest:
+        await message.channel.send(f'Please specify what you would like to lookup after `{p}lookup`')
+        return
+
+      lookup = monsters.get(rest)
+      if not lookup:
+        lookup = weapons.get(rest)
+      if not lookup:
+        lookup = armor.get(rest)
+      if not lookup:
+        lookup = adventuregear.get(rest)
+      if not lookup:
+        lookup = races.get(rest)
+
+      if lookup:
+          embed = discord.Embed(
+            title=f'{lookup.name}',
+            description=f'{lookup}',
+            color=discord.Color.gold(),
+            timestamp=message.created_at,
+          )
+          await message.channel.send(embed=embed)
+
+      else:
+          await message.channel.send(f'Cannot find race: `{rest}`')
+    
+
+      
 
 #
 
