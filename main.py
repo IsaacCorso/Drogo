@@ -19,6 +19,7 @@ from items.adventuregear import AdventureGear, adventuregear
 from items.armor import Armor, armor
 from items.weapons import Weapon, weapons
 from character.races import Race, races
+from character.classes import Class, classes
 # required discord stuff
 
 intents = discord.Intents.default()
@@ -258,7 +259,27 @@ async def on_message(message):
       else:
           await message.channel.send(f'Cannot find race: `{rest}`')
 
+# class lookup command
+    if message.content.startswith(f'{p}class'):
+      rest = message.content[len(f'{p}class'):].strip().lower()
+      if not rest:
+          await message.channel.send(f'Please specify a race name after `{p}class`.')
+          return
 
+      classs = classes.get(rest)
+
+
+      if classs:
+          embed = discord.Embed(
+            title=f'{classs.name}',
+            description=f'{classs}',
+            color=discord.Color.gold(),
+            timestamp=message.created_at,
+          )
+          await message.channel.send(embed=embed)
+
+      else:
+          await message.channel.send(f'Cannot find race: `{rest}`')
 
 
 # lookup command
@@ -277,6 +298,8 @@ async def on_message(message):
         lookup = adventuregear.get(rest)
       if not lookup:
         lookup = races.get(rest)
+      if not lookup:
+        lookup = classes.get(rest)
 
       if lookup:
           embed = discord.Embed(

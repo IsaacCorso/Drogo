@@ -10,7 +10,7 @@ class Monster:
             self.image = image
 
     def __str__ (self):
-        return f'Name: {self.name}\nCategory: {self.xp} \nCost: {self.hp} \nDamage: {self.ac}'
+        return f'Name: {self.name}\nXp: {self.xp} \nHp: {self.hp} \nAc: {self.ac}'
 
 
 
