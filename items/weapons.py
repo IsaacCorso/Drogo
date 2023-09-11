@@ -7,7 +7,7 @@ class Weapon:
         self.weight = weight
         self.properties = properties
     def __str__ (self):
-        return f'Name: {self.name}\nCategory: {self.category} \nCost: {self.cost} \nDamage: {self.damage} \nWeight: {self.weight} \nProperties: {self.properties}'
+        return f'**Name**: {self.name}\n**Category**: {self.category} \n**Cost**: {self.cost} \n**Damage**: {self.damage} \n**Weight**: {self.weight} \n**Properties**: {self.properties}'
 
 weapons = {
   

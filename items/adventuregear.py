@@ -4,7 +4,7 @@ class AdventureGear:
         self.cost = cost
         self.weight = weight
     def __str__ (self):
-        return f'Name: {self.name} \nCost: {self.cost} \nWeight: {self.weight}'
+        return f'**Name**: {self.name} \n**Cost**: {self.cost} \n**Weight**: {self.weight}'
 
 adventuregear = {
     'abacus': AdventureGear('Abacus', '2 gp', '2 lb'),
