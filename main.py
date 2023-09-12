@@ -20,6 +20,10 @@ from items.armor import Armor, armor
 from items.weapons import Weapon, weapons
 from character.races import Race, races
 from character.classes import Class, classes
+from replit import db
+from easy_pil import Editor, load_image_async, Font
+from discord import File
+from selectmenubuttons.selectmenu import help 
 # required discord stuff
 
 intents = discord.Intents.default()
@@ -29,6 +33,16 @@ client = discord.Client(intents=intents)
 # defining prefix
 p = 'a&'
 
+# defining some stuff
+def add_homebrew(homebrew_content):
+  if "homebrew" in db.keys():
+    homebrew = db['homebrew']
+    homebrew.append(homebrew_content)
+    db["homebrew"] = homebrew
+  else:
+    db['homebrew'] = [homebrew_content]
+    
+
 # console logging turning on
 
 
@@ -36,6 +50,30 @@ p = 'a&'
 async def on_ready():
     await client.change_presence(status=discord.Status.dnd, activity=discord.Game('Dungeons and Dragons'))
     print('We have logged in as {0.user}'.format(client))
+
+# member join event
+# @client.event
+# async def on_member_join(member):
+
+#   channel = member.guild.system_channel
+
+#   background = Editor('cities-1.jpg')
+#   profile_image = await load_image_async(str(member.avatar.url))
+
+#   profile = Editor(profile_image).resize((150, 150)).circle_image()
+#   poppins = Font.poppins(size=50, variant="bold")
+
+#   poppins_small = Font.poppins(size=20, varian="light")
+
+#   background.paste(profile, (325, 90))
+#   background.ellipse((325, 90), 150, 150, outline="white", stroke_width=5)
+
+#   background.text((400,260), f"WELCOME TO {member.guild.name}", color="white", font=poppins, align="center")
+#   background.text((400, 325), f"{member.name}#{member.discriminator}", color="white", font="poppins_small", align="center")
+
+#   file = File(fp=background.image_bytes, filename="cities-1.jpg")
+#   await channel.send(f"Hello {member.mention}! Welcome to **{member.guild.name}**")
+#   await channel.send(file=file)
 
 # commands
 @client.event
@@ -279,9 +317,53 @@ async def on_message(message):
           await message.channel.send(embed=embed)
 
       else:
-          await message.channel.send(f'Cannot find race: `{rest}`')
+          await message.channel.send(f'Cannot find class: `{rest}`')
 
 
+# add homebrew
+    if message.content.startswith(f'{p}addhomebrew'):
+      homebrew_content = message.content[len(f'{p}addhomebrew'):].strip()
+      add_homebrew(homebrew_content)
+      await message.reply(f'Embed Item Created, do `{p}listhomebrew`')
+      return
+
+
+    if message.content.startswith(f'{p}listhomebrew'):
+      homebrew_content = []
+      if "homebrew" in db.keys():
+        homebrew_content = db["homebrew"]
+      foo = ""
+      for i in homebrew_content:
+        foo += f'{i}, '
+      await message.reply(foo)
+
+
+    # if message.content.startswith(f'{p}homebrew'):
+    #   homebrew_content = []
+    #   if "homebrew" in db.keys():
+    #     index = int(message.content.split(f'{p}homebrew',1)[1])
+    #     homebrew_content = db["homebrew"]
+    #   await message.reply(f'{homebrew_content(index)}')
+
+
+
+
+  
+
+# help command
+    if message.content.startswith(f'{p}help'):
+      embed = discord.Embed(
+            title=f'Drogo Help Menu',
+            description=f'`{p}roll` rolls a die or multiple dice \n`{p}randomname` generates a random name \n`{p}defeat` shows monster xp and image \n`{p}item` lookup any item in the players handbook \n`{p}race` shows any info on races \n`{p}class` shows any info on classes \n `{p}lookup` lookup anything from monsters, items, races, and classes',
+            color=discord.Color.green(),
+            timestamp=message.created_at,
+          )
+      await message.channel.send(embed=embed)
+  
+      
+  
+
+  
 # lookup command
     if message.content.startswith(f'{p}lookup'):
       rest = message.content[len(f'{p}lookup'):].strip().lower()
