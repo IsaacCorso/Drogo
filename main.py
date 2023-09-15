@@ -2,7 +2,7 @@
 # https://discordpy.readthedocs.io/en/stable/quickstart.html#a-minimal-bot
 
 # imports
-
+import replit
 import os
 import random
 import discord
@@ -41,8 +41,14 @@ def add_homebrew(homebrew_content):
     db["homebrew"] = homebrew
   else:
     db['homebrew'] = [homebrew_content]
-    
-
+# category    
+category_files = {
+    'armor': 'categories/armor_homebrew.txt',
+    'item': 'categories/item_homebrew.txt',
+    'class': 'categories/class_homebrew.txt',
+    'race': 'categories/race_homebrew.txt',
+    'monster': 'categories/monster_homebrew.txt',
+}
 # console logging turning on
 
 
@@ -83,16 +89,14 @@ async def on_message(message):
 
 #roll command
     if message.content.startswith(f'{p}roll'):
-        # Split the message content to get the roll description and additional value
         args = message.content.split()
-        
+
         if len(args) < 2:
             await message.reply('Please specify the number of dice and sides (e.g., 2d12)')
             return
 
         roll_description = args[1]
 
-        # Parse the roll description (e.g., "1d10")
         try:
             num_dice, sides = map(int, roll_description.split('d'))
         except ValueError:
@@ -103,95 +107,73 @@ async def on_message(message):
             await message.reply('Both the number of dice and sides must be greater than 0.')
             return
 
-        # Check for advantage or disadvantage
-        is_advantage = "adv" in args[2:]  # Check if "adv" is in the remaining arguments
+        is_advantage = "adv" in args[2:]
 
-        # Initialize variables
         rolls = []
         result = 0
 
         if is_advantage:
-            # Advantage: Roll two dice and add the additional value to both
             for _ in range(2):
                 roll = random.randint(1, sides)
                 rolls.append(roll)
-                result += roll
+            result = max(rolls)  # Take the higher of the two rolls
         else:
-            # Normal roll: Roll a single die and add the additional value
             for _ in range(num_dice):
                 roll = random.randint(1, sides)
                 rolls.append(roll)
                 result += roll
 
-        # Check if there's an additional value (e.g., +3)
         additional_value = 0
-        if len(args) > 2 and args[-1][0] == '+':
+        if len(args) > 2 and (args[-1][0] == '+' or args[-1][0] == '-'):
             try:
-                additional_value = int(args[-1][1:])
-                result += additional_value
+                additional_value = int(args[-1])
+                if args[-1][0] == '-':
+                    result -= abs(additional_value)  # Subtract the absolute value
+                else:
+                    result += additional_value
             except ValueError:
-                await message.reply('Invalid additional value. Please use +X format (e.g., +3)')
+                await message.reply('Invalid additional value. Please use +X or -X format (e.g., +3 or -2)')
 
         await message.reply('Rolling the dice...')
         time.sleep(.7)
-        await message.channel.send(f'<@{message.author.id}>, You rolled {num_dice}d{sides}{" with advantage" if is_advantage else ""}: Result: {result}, Rolls: {rolls}, Additional Value: {additional_value}')
+        await message.channel.send(
+            f'<@{message.author.id}>, You rolled {num_dice}d{sides}{" with advantage" if is_advantage else ""}: '
+            f'Result: {result}, Rolls: {rolls}, Additional Value: {additional_value}')
 
 
 # random names
-    if message.content.startswith(f'{p}randomname'):
+    if message.content.startswith(f'{p}randomname') or message.content.startswith(f'{p}rname'):
         args = message.content.split()
-        
-        # Check if the user specified a gender
-        gender = None
-        if len(args) > 1:
-            gender_arg = args[1].lower()
-            if gender_arg == 'male':
-                gender = 'male'
-            elif gender_arg == 'female':
-                gender = 'female'
 
-        # Check if the user specified 'full' for a full name
+        # Check if the user specified 'full'
         full_name = False
-        if len(args) > 2 and args[2].lower() == 'full':
+        if len(args) > 1 and args[1].lower() == 'full':
             full_name = True
 
-        # Generate a random name based on the specified gender and full name preference
-        if full_name:
-            generated_name = names.get_full_name(gender=gender)
-        else:
-            generated_name = names.get_first_name(gender=gender)
-        
-        # Determine the gender for the response message
-        response_gender = "unspecified" if gender is None else gender
-        response_name_type = "Full Name" if full_name else "First Name"
-        await message.channel.send(f'Generated {response_gender.capitalize()} {response_name_type}: {generated_name}')
-    if message.content.startswith(f'{p}rname'):
-        args = message.content.split()
-        
         # Check if the user specified a gender
         gender = None
-        if len(args) > 1:
-            gender_arg = args[1].lower()
-            if gender_arg == 'male':
+        if len(args) > 2:
+            gender_arg = args[2].lower()
+            if gender_arg in ['male', 'm']:
                 gender = 'male'
-            elif gender_arg == 'female':
+            elif gender_arg in ['female', 'f']:
                 gender = 'female'
 
-        # Check if the user specified 'full' for a full name
-        full_name = False
-        if len(args) > 2 and args[2].lower() == 'full':
-            full_name = True
+        # Check if a gender was specified for full names
+        if full_name and gender is None:
+            await message.channel.send('Please specify a gender for full names (e.g., male or female).')
+            return
 
-        # Generate a random name based on the specified gender and full name preference
+        # Generate a random name based on the specified gender
         if full_name:
             generated_name = names.get_full_name(gender=gender)
+            response_name_type = "Full Name"
         else:
-            generated_name = names.get_first_name(gender=gender)
-        
-        # Determine the gender for the response message
-        response_gender = "unspecified" if gender is None else gender
-        response_name_type = "Full Name" if full_name else "First Name"
-        await message.channel.send(f'Generated {response_gender.capitalize()} {response_name_type}: {generated_name}')
+            generated_name = names.get_first_name()
+            response_name_type = "First Name"
+
+        # Send the generated name along with the name type
+        await message.channel.send(f'Generated {response_name_type}: {generated_name}')
 
 # defeat command
     if message.content.startswith(f'{p}defeat'):
@@ -212,7 +194,52 @@ async def on_message(message):
             embed.set_image(url=monster.image)
             await message.channel.send(embed=embed)
 
+# info command
+    if message.content.startswith(f'{p}info'):
+        rest = message.content[len(f'{p}info'):].strip().lower()
+        if not rest:
+            await message.reply(f'Please specify a monsters name after `{p}info`.')
+            return
 
+        monster = monsters.get(rest)
+
+        if monster:
+            embed = discord.Embed(
+              title=f'Info for {monster.name}',
+              description=f'{monster}',
+              color=discord.Color.green(),
+              timestamp=message.created_at,
+              
+              
+            )
+            embed.set_image(url=monster.image)
+            await message.reply(embed=embed)
+
+        if not monster:
+            await message.reply(f'cannot find monster in `&info`, to see a list of monsters [go here](https://github.com/IsaacCorso/Drogo/blob/main/monsters/monsters.py)')
+
+
+# monster image command
+    if message.content.startswith(f'{p}mimage'):
+        rest = message.content[len(f'{p}mimage'):].strip().lower()
+        if not rest:
+            await message.reply(f'Please specify a monsters name after `{p}mimage`.')
+            return
+          
+        monster = monsters.get(rest)
+
+        if monster:
+            embed = discord.Embed(
+              title=f'Image for `{monster.name}`:',
+              color=discord.Color.orange()
+            )
+            embed.set_image(url=monster.image)
+            await message.reply(embed=embed)
+        if not monster:
+            await message.reply(f'cannot find monster in `&mimage`, to see a list of monsters [go here](https://github.com/IsaacCorso/Drogo/blob/main/monsters/monsters.py)')
+
+    
+            
     # if message.content.startswith(f'{p}get_character_sheet'):
     #     # Extract the URL from the message
     #     try:
@@ -320,30 +347,7 @@ async def on_message(message):
           await message.channel.send(f'Cannot find class: `{rest}`')
 
 
-# add homebrew
-    if message.content.startswith(f'{p}addhomebrew'):
-      homebrew_content = message.content[len(f'{p}addhomebrew'):].strip()
-      add_homebrew(homebrew_content)
-      await message.reply(f'Embed Item Created, do `{p}listhomebrew`')
-      return
 
-
-    if message.content.startswith(f'{p}listhomebrew'):
-      homebrew_content = []
-      if "homebrew" in db.keys():
-        homebrew_content = db["homebrew"]
-      foo = ""
-      for i in homebrew_content:
-        foo += f'{i}, '
-      await message.reply(foo)
-
-
-    # if message.content.startswith(f'{p}homebrew'):
-    #   homebrew_content = []
-    #   if "homebrew" in db.keys():
-    #     index = int(message.content.split(f'{p}homebrew',1)[1])
-    #     homebrew_content = db["homebrew"]
-    #   await message.reply(f'{homebrew_content(index)}')
 
 
 
@@ -361,8 +365,95 @@ async def on_message(message):
       await message.channel.send(embed=embed)
   
       
-  
 
+
+
+# add homebrew
+    if message.content.startswith(f'{p}homebrewadd'):
+        # Split the message into parts
+        parts = message.content.split(None, 2)
+        if len(parts) < 3:
+            await message.channel.send(f"Invalid usage. Use `{p}homebrewadd [category] [content]`.")
+            return
+
+        _, category, homebrew_content = parts[:3]
+
+        # Ensure the category is valid
+        category = category.lower()
+        if category not in category_files:
+            await message.channel.send(f"Invalid category. Choose from: {', '.join(category_files.keys())}")
+            return
+
+        # Store the homebrew content in the respective file
+        filename = category_files[category]
+        with open(filename, "a") as file:
+            file.write(homebrew_content + "\n")
+
+        await message.channel.send(f"Homebrew {category} content added:\n{homebrew_content}")
+# homebrew list
+    elif message.content.startswith(f'{p}homebrewlist'):
+        # Split the message into parts
+        parts = message.content.split(None, 1)
+        if len(parts) < 2:
+            await message.channel.send(f"Invalid usage. Use `{p}homebrewlist [category]`.")
+            return
+
+        _, category = parts[:2]
+
+        # Ensure the category is valid
+        category = category.strip().lower()
+        if category not in category_files:
+            await message.channel.send(f"Invalid category. Choose from: {', '.join(category_files.keys())}")
+            return
+
+        # Retrieve the list of homebrew content from the respective file
+        filename = category_files[category]
+        homebrew_content = []
+        if os.path.isfile(filename):
+            with open(filename, "r") as file:
+                homebrew_content = file.readlines()
+
+        if homebrew_content:
+            # Send a list of all homebrew content in the specified category
+            content_text = "".join(homebrew_content)
+            await message.channel.send(f"Homebrew {category} content:\n{content_text}")
+        else:
+            await message.channel.send(f"No homebrew {category} content found.")
+# homebrew search
+    elif message.content.startswith(f'{p}homebrewsearch'):
+        # Split the message into parts
+        parts = message.content.split(None, 2)
+        if len(parts) < 3:
+            await message.channel.send(f"Invalid usage. Use `{p}homebrewsearch [category] [search term]`.")
+            return
+
+        _, category, search_term = parts[:3]
+
+        # Ensure the category is valid
+        category = category.strip().lower()
+        if category not in category_files:
+            await message.channel.send(f"Invalid category. Choose from: {', '.join(category_files.keys())}")
+            return
+
+        # Retrieve the list of homebrew content from the respective file
+        filename = category_files[category]
+        homebrew_content = []
+        if os.path.isfile(filename):
+            with open(filename, "r") as file:
+                homebrew_content = file.readlines()
+
+        found_content = []
+        for content in homebrew_content:
+            if search_term.lower() in content.lower():
+                found_content.append(content.strip())
+
+        if found_content:
+            # Send the list of found homebrew content in the specified category
+            found_text = "\n".join(found_content)
+            await message.channel.send(f"Found homebrew {category} content:\n{found_text}")
+        else:
+            await message.channel.send(f"No homebrew {category} content found matching: {search_term}")
+  
   
 # lookup command
     if message.content.startswith(f'{p}lookup'):
@@ -393,7 +484,7 @@ async def on_message(message):
           await message.channel.send(embed=embed)
 
       else:
-          await message.channel.send(f'Cannot find race: `{rest}`')
+          await message.channel.send(f'Cannot find: `{rest}`')
     
 
       
