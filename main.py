@@ -23,25 +23,44 @@ from character.classes import Class, classes
 from replit import db
 from easy_pil import Editor, load_image_async, Font
 from discord import File
-from selectmenubuttons.selectmenu import help 
-# required discord stuff
+from selectmenubuttons.selectmenu import help
+import slash_commands
+import json
 
+
+def save_character_data():
+    with open('character_data.json', 'w') as file:
+        json.dump(character_data, file)
+
+def load_character_data():
+    try:
+        with open('character_data.json', 'r') as file:
+            print("file is available")
+            bob = json.load(file)
+            # print(bob)
+            return bob
+    except FileNotFoundError:
+        print('not available')
+        return {}
+
+character_data = load_character_data()
+# print('here i am')
+# print(character_data)
+
+# required discord stuff
 intents = discord.Intents.default()
+intents.members = True
+intents.presences = True
 intents.message_content = True
 
 client = discord.Client(intents=intents)
+
+tree = app_commands.CommandTree(client)
 # defining prefix
 p = 'a&'
 
-# defining some stuff
-def add_homebrew(homebrew_content):
-  if "homebrew" in db.keys():
-    homebrew = db['homebrew']
-    homebrew.append(homebrew_content)
-    db["homebrew"] = homebrew
-  else:
-    db['homebrew'] = [homebrew_content]
-# category    
+# # defining some stuff
+   
 category_files = {
     'armor': 'categories/armor_homebrew.txt',
     'item': 'categories/item_homebrew.txt',
@@ -49,37 +68,184 @@ category_files = {
     'race': 'categories/race_homebrew.txt',
     'monster': 'categories/monster_homebrew.txt',
 }
+
 # console logging turning on
+# @tree.command(name="hello",
+#               description="My first application Command",)
+# async def command_hello(interaction):
+#   await interaction.response.send_message("Hello Back!")
+logo_file = discord.File("drogologo.png", filename="drogologo.png")
+
+# invite command
+@tree.command(name="invite",
+              description="Invite Drogo to your Own Server"
+             )
+async def command_invite(interaction):
+  embed = discord.Embed(
+                title=f'Invite Drogo to your own Server',
+                description='Invite Drogo to your own server with this link: [dsc.gg/drogo](https://dsc.gg/drogo)    \n \u200b \n Need help, Join the official Drogo help server at: [dsc.gg/drogoserver](https://dsc.gg/drogoserver)',
+                color=discord.Color.orange(),
+            )
+  embed.set_footer(text= "Drogo - A Dungeons and Dragons discord bot", icon_url='attachment://drogologo.png')
+  await interaction.response.send_message(file=logo_file, embed=embed)
+  
+
+@tree.command(name="roll",
+              description="Roll command",)
+async def command_roll(interaction, dice: str, advantage: bool=False,
+                      additional_value: str="0"):
+  """This command processes a roll.
+
+    Parameters
+    -----------
+    dice: str
+        The roll to execute
+    advantage: bool
+        True means this is an advantage roll
+    additional_value: str
+        +x or -x or 0 to add to the roll
+  """
+
+  roll_description = dice
+
+  try:
+    num_dice, sides = map(int, roll_description.split('d'))
+  except ValueError:
+    await interaction.response.send_message(
+        'Invalid roll format. Please use XdY format (e.g., 2d10)')
+    return
+
+  if num_dice <= 0 or sides <= 0:
+    await interaction.response.send_message(
+        'Both the number of dice and sides must be greater than 0.')
+    return
+
+  is_advantage = advantage
+  
+  rolls = []
+  result = 0
+
+  if is_advantage:
+    for _ in range(2):
+      roll = random.randint(1, sides)
+      rolls.append(roll)
+    result = max(rolls)  # Take the higher of the two rolls
+  else:
+    for _ in range(num_dice):
+      roll = random.randint(1, sides)
+      rolls.append(roll)
+      result += roll
+
+  av = 0
+  try:
+    av = int(additional_value)
+    if additional_value[0] == '-':
+      result -= abs(av)  # Subtract the absolute value
+    else:
+      result += av
+  except ValueError:
+     await interaction.response.send_message(
+         'Invalid additional value. Please use +X or -X format (e.g., +3 or -2)'
+     )
+
+  #await interaction.response.send_message('Rolling the dice...')
+  #time.sleep(.7)
+  await interaction.response.send_message(
+      f'<@{interaction.user.id}>, You rolled {num_dice}d{sides}{" with advantage" if is_advantage else ""}: '
+      f'Result: {result}, Rolls: {rolls}, Additional Value: {additional_value}'
+      )
+
+
+
+# @tree.command(name="randomname", description="Tells you a random name",guild=discord.Object(id=1147933019794046976))
+# async def command_randomname(interaction, full_name: bool=False, gender: str=""):
+#   """This command give you a random name.
+
+#     Parameters
+#     -----------
+#     full_name: bool
+#         Should i give you a full name
+#     gender: str
+#         What gender should the name be
+#   """
+#         # Check if the user specified 'full'
+#         full_name = False
+#         if len(args) > 1 and args[1].lower() == 'full':
+#             full_name = True
+
+#         # Check if the user specified a gender
+#         gender = None
+#         if len(args) > 2:
+#             gender_arg = args[2].lower()
+#             if gender_arg in ['male', 'm']:
+#                 gender = 'male'
+#             elif gender_arg in ['female', 'f']:
+#                 gender = 'female'
+
+#         # Check if a gender was specified for full names
+#         if full_name and gender is None:
+#             await message.channel.send('Please specify a gender for full names (e.g., male or female).')
+#             return
+
+#         # Generate a random name based on the specified gender
+#         if full_name:
+#             generated_name = names.get_full_name(gender=gender)
+#             response_name_type = "Full Name"
+#         else:
+#             generated_name = names.get_first_name()
+#             response_name_type = "First Name"
+
+#         # Send the generated name along with the name type
+#         await message.channel.send(f'Generated {response_name_type}: {generated_name}')
+
+
+
+# @client.event
+# async def on_member_join(member):
+#     #pfp = member.user.avatar_url
+#     embed = discord.Embed(
+#       color = discord.Color.orange(),
+#       title = f'Welcome {member.name}',
+#       description = f'Hey {member.mention}\n \n**{member.guild.name}** Is Happy to Welcome you',
+#     )
+#     #embed.set_image(url=(pfp))
+
+#     await client.get_channel(1147933020607762514).send(embed=embed)
+    
 
 
 @client.event
 async def on_ready():
     await client.change_presence(status=discord.Status.dnd, activity=discord.Game('Dungeons and Dragons'))
     print('We have logged in as {0.user}'.format(client))
+    await tree.sync()
+
+    global character_data
+    character_data = load_character_data()
 
 # member join event
-# @client.event
-# async def on_member_join(member):
+@client.event
+async def on_member_join(member):
 
-#   channel = member.guild.system_channel
+  channel = client.get_channel(1147933020607762514)
 
-#   background = Editor('cities-1.jpg')
-#   profile_image = await load_image_async(str(member.avatar.url))
+  background = Editor('cities-1.jpeg')
+  profile_image = await load_image_async(str(member.avatar.url))
 
-#   profile = Editor(profile_image).resize((150, 150)).circle_image()
-#   poppins = Font.poppins(size=50, variant="bold")
+  profile = Editor(profile_image).resize((150, 150)).circle_image()
+  poppins = Font.poppins(size=50, variant="bold")
 
-#   poppins_small = Font.poppins(size=20, varian="light")
+  poppins_small = Font.poppins(size=20, variant="light")
 
-#   background.paste(profile, (325, 90))
-#   background.ellipse((325, 90), 150, 150, outline="white", stroke_width=5)
+  background.paste(profile, (325, 90))
+  background.ellipse((325, 90), 150, 150, outline="white", stroke_width=5)
 
-#   background.text((400,260), f"WELCOME TO {member.guild.name}", color="white", font=poppins, align="center")
-#   background.text((400, 325), f"{member.name}#{member.discriminator}", color="white", font="poppins_small", align="center")
+  background.text((400,260), f"{member.name}", color="white", font=poppins, align="center")
+  background.text((400, 325), f"{member.name}#{member.discriminator}", color="black", font=poppins_small, align="center")
 
-#   file = File(fp=background.image_bytes, filename="cities-1.jpg")
-#   await channel.send(f"Hello {member.mention}! Welcome to **{member.guild.name}**")
-#   await channel.send(file=file)
+  file = File(fp=background.image_bytes, filename="cities-1.jpeg")
+  await client.get_channel(1147933020607762514).send(f"Hello {member.mention}! Welcome to **{member.guild.name}**")
+  await client.get_channel(1147933020607762514).send(file=file)
 
 # commands
 @client.event
@@ -87,7 +253,7 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-#roll command
+    #roll command
     if message.content.startswith(f'{p}roll'):
         args = message.content.split()
 
@@ -194,7 +360,7 @@ async def on_message(message):
             embed.set_image(url=monster.image)
             await message.channel.send(embed=embed)
 
-# info command
+    # info command
     if message.content.startswith(f'{p}info'):
         rest = message.content[len(f'{p}info'):].strip().lower()
         if not rest:
@@ -346,6 +512,56 @@ async def on_message(message):
       else:
           await message.channel.send(f'Cannot find class: `{rest}`')
 
+# ping command
+    if message.content.startswith(f'{p}ping'):
+        latency = round(client.latency * 1000) 
+        await message.reply(f'Pong! Bot Latency: {latency}ms')
+
+
+# random character stats command
+    if message.content.startswith(f'{p}randstat') or message.content.startswith(f'{p}randstats') or message.content.startswith(f'{p}randomstats'):
+        num_rolls = 6  # Number of times to roll the dice
+        all_rolls = []  # Store all rolls
+
+        for _ in range(num_rolls):
+            # Roll 4 dice
+            dice_rolls = [random.randint(1, 6) for _ in range(4)]
+
+            # Sort the rolls in ascending order
+            sorted_rolls = sorted(dice_rolls)
+
+            # Remove the lowest roll
+            lowest_roll = sorted_rolls[0]
+            sorted_rolls.remove(lowest_roll)
+
+            # Calculate the total
+            total = sum(sorted_rolls)
+
+            # Add the rolls to the list
+            all_rolls.append({
+                "rolls": dice_rolls,
+                "total": total
+            })
+
+        # Calculate the total of all numbers excluding the lowest
+        total_excluding_lowest = sum(roll["total"] for roll in all_rolls)
+
+        # Create an embed for the results
+        embed = discord.Embed(title="Random Stats Rolls", color=discord.Color.orange())
+
+        for idx, roll_data in enumerate(all_rolls):
+            rolls_formatted = [f"~~{roll}~~" if roll == min(roll_data["rolls"]) else str(roll) for roll in roll_data["rolls"]]
+            rolls_message = ', '.join(rolls_formatted)
+            response = f"Rolls {idx + 1}: {rolls_message} ({roll_data['total']})"
+
+            embed.add_field(name=f"Stat {idx + 1}", value=response, inline=False)
+
+        # Add the total excluding the lowest to the footer
+        # embed = discord.Embed(title="Dice Rolls", color=discord.Color.orange())
+        embed.set_footer(text=f"Total (excluding lowest): {total_excluding_lowest}")
+
+        # Send the embed to the channel
+        await message.reply(embed=embed)
 
 
 
@@ -487,10 +703,158 @@ async def on_message(message):
           await message.channel.send(f'Cannot find: `{rest}`')
     
 
-      
+    official_races = ["dwarf", "elf", "halfling", "human", "dragonborn", "gnome", "half-elf", "half-orc", "tiefling"]
+    official_classes = ["barbarian", "bard", "cleric", "druid", "fighter", "monk", "paladin", "ranger", "rogue", "sorcerer", "warlock", "wizard"]
+     
 
-#
+#character creator command
+    if message.content.startswith(f'{p}newcharacter'):
+        command = message.content.split()
+        if len(command) == 2:
+            name = command[1]
+            user_id = str(message.author.id)
+            if user_id not in character_data:
+                character_data[user_id] = []
 
+            if any(char["name"].lower() == name.lower() for char in character_data[user_id]):
+                await message.channel.send("You already have a character with that name.")
+            else:
+                character_data[user_id].append({
+                    "name": name,
+                    "race": "",
+                    "class": "",
+                    "items": [],
+                    "spells": [],
+                    "background": "",
+                    "backstory": "",
+                    "skills": {},
+                    "armor_class": 0,
+                    "max_health": 0,
+                    "health": 0,
+                    "speed": 0,
+                    "initiative": 0,
+                    "saving_throws": {},
+                    "features_traits": "",
+                    "proficiencies": [],
+                    "languages": [],
+                    "proficiency_bonus": 0,
+                    "alignment": "",
+                    "stats": {"strength": 0, "dexterity": 0, "constitution": 0, "intelligence": 0, "wisdom": 0, "charisma": 0},
+                    "flaws": "",
+                    "bonds": "",
+                    "ideals": "",
+                    "personality_traits": "",
+                    "equipment": [],
+                    "death_saves": {"successes": 0, "failures": 0},
+                    "exp": 0,
+                    "level": 1,
+                    "treasure": "",
+                    "allies_organizations": "",
+                    "appearance": {"age": 0, "height": "", "weight": "", "eyes": "", "skin": "", "hair": ""},
+                    "spellcasting_ability": "",
+                    "spell_save_dc": 0,
+                    "spell_attack_bonus": 0,
+                    "homebrew": True
+                })
+
+                # After creating a character, save the character data
+                save_character_data()
+                await message.channel.send(f"Character `{name}` created.")
+                await message.channel.send(f'Use `{p}editcharacter` to edit your character, and use `{p}characterinfo` to see character stats and info')
+
+    if message.content.startswith(f'{p}editcharacter'):
+        command = message.content.split()
+        if len(command) == 1:
+            await message.reply(f'Please include a name in `{p}editcharacter`')
+        if len(command) == 2:
+            await message.reply('Please specify a value, go to [Drogo Docs](https://drogo.gitbook.io/drogodocs/all-commands) to see a list of allowed values')
+        if len(command) >= 4:
+            name = command[1]
+            thing = command[2].lower()  # Convert to lowercase for case-insensitive comparison
+            value = ' '.join(command[3:])
+            user_id = str(message.author.id)
+            if user_id in character_data:
+                for character in character_data[user_id]:
+                    if character["name"].lower() == name.lower():
+                        if thing == "race" and not character["homebrew"]:
+                            await message.channel.send("Please enable homebrew to set a custom race.")
+                            return
+    
+                        if thing in character:
+                            character[thing] = value
+                            # After editing the character, save the character data
+                            save_character_data()
+                            await message.channel.send(f"{thing.capitalize()} updated to {value}.")
+                        else:
+                            await message.reply(f'Cannot find `{thing}` in `{p}editcharacter`')
+                        return
+                await message.channel.send("Character not found.")
+            else:
+                await message.channel.send("You don't have any characters.")
+
+
+
+  
+    if message.content.startswith(f'{p}characterinfo'):
+        command = message.content.split()
+        if len(command) == 1:
+            await message.channel.send(f"Please use a name for `{p}characterinfo` to see the info of that character.")
+            return
+        if len(command) >= 2:
+            name = command[1]
+            thing = command[2] if len(command) >= 3 else None
+            user_id = str(message.author.id)
+            if user_id in character_data:
+                for character in character_data[user_id]:
+                    if character["name"].lower() == name.lower():
+                        embed = discord.Embed(title=f"Character Info for {name}", color=discord.Color.orange())
+                        info_message = ""
+                        
+                        if thing is None:
+                            # Display basic info by default
+                            for key, value in character.items():
+                                if key != "name":
+                                    if isinstance(value, dict):
+                                        for sub_key, sub_value in value.items():
+                                            info_message += f"{sub_key.capitalize()}: {sub_value}\n"
+                                    else:
+                                        info_message += f"{key.capitalize()}: {value}\n"
+                        elif thing.lower() == "stats":
+                            # Display stats, hp, ac, exp, and stats
+                            for key, value in character.items():
+                                if key != "name" and key in ["hp", "ac", "exp", "stats"]:
+                                    if isinstance(value, dict):
+                                        for sub_key, sub_value in value.items():
+                                            info_message += f"{sub_key.capitalize()}: {sub_value}\n"
+                                    else:
+                                        info_message += f"{key.capitalize()}: {value}\n"
+                        elif thing.lower() == "appearance":
+                            # Display appearance, race, class, and background
+                            for key, value in character.items():
+                                if key != "name" and key in ["appearance", "race", "class", "background"]:
+                                    if isinstance(value, dict):
+                                        for sub_key, sub_value in value.items():
+                                            info_message += f"{sub_key.capitalize()}: {sub_value}\n"
+                                    else:
+                                        info_message += f"{key.capitalize()}: {value}\n"
+                        else:
+                            await message.channel.send(f"Invalid option. Please use `{p}characterinfo <name>`, `{p}characterinfo <name> stats`, or `{p}characterinfo <name> appearance`.")
+                            return
+                        
+                        # Split the info message into multiple embeds if it's too long
+                        if len(info_message) > 2000:
+                            chunks = [info_message[i:i + 2000] for i in range(0, len(info_message), 2000)]
+                            for chunk in chunks:
+                                embed.description = chunk
+                                await message.channel.send(embed=embed)
+                        else:
+                            embed.description = info_message
+                            await message.channel.send(embed=embed)
+
+                        return
+                await message.channel.send(f"Character '{name}' not found.")
+            else:
+                await message.channel.send("You don't have any characters.")
 
 # token
 
