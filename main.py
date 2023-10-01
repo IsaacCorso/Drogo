@@ -26,6 +26,7 @@ from discord import File
 from selectmenubuttons.selectmenu import help
 import json
 from PIL import Image, ImageDraw, ImageFont
+from bot_token import MY_TOKEN
 
 
 
@@ -1118,4 +1119,5 @@ async def on_message(message):
 
 
 # Your bot token goes here
-client.run('MTE1MDA0NjU5ODMyNDMxMDA5Ng.GdYkyH._-u4GoYt0JtfhMAPHu1vfIHoOIwcosONX6gfU4')
+
+client.run(MY_TOKEN)

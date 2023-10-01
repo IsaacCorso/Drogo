@@ -3,3 +3,4 @@
 .cache
 .upm
 **/__pycache__/**
+bot_token.py
