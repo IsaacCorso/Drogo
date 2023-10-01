@@ -4,6 +4,7 @@
 # imports
 import replit
 import os
+import re
 import random
 import discord
 from discord.ext import commands
@@ -12,7 +13,6 @@ from discord import app_commands
 from discord.ext.commands.parameters import Author
 import names
 from monsters.monsters import Monster, monsters
-from dndbeyond_websearch import Searcher
 import requests
 from bs4 import BeautifulSoup
 from items.adventuregear import AdventureGear, adventuregear
@@ -20,13 +20,22 @@ from items.armor import Armor, armor
 from items.weapons import Weapon, weapons
 from character.races import Race, races
 from character.classes import Class, classes
-from replit import db
 from easy_pil import Editor, load_image_async, Font
 from discord import File
 from selectmenubuttons.selectmenu import help
-import slash_commands
 import json
+from bot_token import MY_TOKEN
 
+
+campaigns = {}
+try:
+    with open('campaigns.txt', 'r') as file:
+        lines = file.readlines()
+        for line in lines:
+            name, password = line.strip().split()
+            campaigns[name] = password
+except FileNotFoundError:
+    campaigns = {}
 
 def save_character_data():
     with open('character_data.json', 'w') as file:
@@ -57,7 +66,7 @@ client = discord.Client(intents=intents)
 
 tree = app_commands.CommandTree(client)
 # defining prefix
-p = 'a&'
+p = '&'
 
 # # defining some stuff
    
@@ -739,7 +748,18 @@ async def on_message(message):
                     "languages": [],
                     "proficiency_bonus": 0,
                     "alignment": "",
-                    "stats": {"strength": 0, "dexterity": 0, "constitution": 0, "intelligence": 0, "wisdom": 0, "charisma": 0},
+                    "strength": "",
+                    "strength_modifier": "",
+                    "dexterity": "",
+                    "dexterity_modifier": "",
+                    "constitution": "",
+                    "constitution_modifier": "",
+                    "intelligence": "",
+                    "intelligence_modifier": "",
+                    "wisdom": "",
+                    "wisdom_modifier": "",
+                    "charisma": "",
+                    "charisma_modifier": "",
                     "flaws": "",
                     "bonds": "",
                     "ideals": "",
@@ -750,7 +770,12 @@ async def on_message(message):
                     "level": 1,
                     "treasure": "",
                     "allies_organizations": "",
-                    "appearance": {"age": 0, "height": "", "weight": "", "eyes": "", "skin": "", "hair": ""},
+                    "age": 0,
+                    "height": "",
+                    "weight": "",
+                    "eyes": "",
+                    "skin": "",
+                    "hair": "",
                     "spellcasting_ability": "",
                     "spell_save_dc": 0,
                     "spell_attack_bonus": 0,
@@ -797,50 +822,29 @@ async def on_message(message):
   
     if message.content.startswith(f'{p}characterinfo'):
         command = message.content.split()
-        if len(command) == 1:
-            await message.channel.send(f"Please use a name for `{p}characterinfo` to see the info of that character.")
+        if len(command) != 4 or not re.match(r'<@!?(\d+)>', command[2]):
+            await message.channel.send(f"Please use the correct format: `{p}characterinfo <name> @user <category>`.")
             return
-        if len(command) >= 2:
-            name = command[1]
-            thing = command[2] if len(command) >= 3 else None
-            user_id = str(message.author.id)
-            if user_id in character_data:
-                for character in character_data[user_id]:
-                    if character["name"].lower() == name.lower():
-                        embed = discord.Embed(title=f"Character Info for {name}", color=discord.Color.orange())
-                        info_message = ""
-                        
-                        if thing is None:
-                            # Display basic info by default
-                            for key, value in character.items():
-                                if key != "name":
-                                    if isinstance(value, dict):
-                                        for sub_key, sub_value in value.items():
-                                            info_message += f"{sub_key.capitalize()}: {sub_value}\n"
-                                    else:
-                                        info_message += f"{key.capitalize()}: {value}\n"
-                        elif thing.lower() == "stats":
-                            # Display stats, hp, ac, exp, and stats
-                            for key, value in character.items():
-                                if key != "name" and key in ["hp", "ac", "exp", "stats"]:
-                                    if isinstance(value, dict):
-                                        for sub_key, sub_value in value.items():
-                                            info_message += f"{sub_key.capitalize()}: {sub_value}\n"
-                                    else:
-                                        info_message += f"{key.capitalize()}: {value}\n"
-                        elif thing.lower() == "appearance":
-                            # Display appearance, race, class, and background
-                            for key, value in character.items():
-                                if key != "name" and key in ["appearance", "race", "class", "background"]:
-                                    if isinstance(value, dict):
-                                        for sub_key, sub_value in value.items():
-                                            info_message += f"{sub_key.capitalize()}: {sub_value}\n"
-                                    else:
-                                        info_message += f"{key.capitalize()}: {value}\n"
-                        else:
-                            await message.channel.send(f"Invalid option. Please use `{p}characterinfo <name>`, `{p}characterinfo <name> stats`, or `{p}characterinfo <name> appearance`.")
-                            return
-                        
+        name = command[1]
+        player_ping = command[2]
+        player_id_match = re.match(r'<@!?(\d+)>', player_ping)
+        player = player_id_match.group(1)
+        category = command[3]
+    
+        if player in character_data:
+            for character in character_data[player]:
+                if character["name"].lower() == name.lower():
+                    embed = discord.Embed(title=f"Character Info for {name}", color=discord.Color.orange())
+                    info_message = ""
+                    if category.lower() == "all":
+                        # Display all info
+                        for key, value in character.items():
+                            if key != "name":
+                                if isinstance(value, dict):
+                                    for sub_key, sub_value in value.items():
+                                        info_message += f"{sub_key.capitalize()}: {sub_value}\n"
+                                else:
+                                    info_message += f"{key.capitalize()}: {value}\n"
                         # Split the info message into multiple embeds if it's too long
                         if len(info_message) > 2000:
                             chunks = [info_message[i:i + 2000] for i in range(0, len(info_message), 2000)]
@@ -850,16 +854,94 @@ async def on_message(message):
                         else:
                             embed.description = info_message
                             await message.channel.send(embed=embed)
-
                         return
-                await message.channel.send(f"Character '{name}' not found.")
-            else:
-                await message.channel.send("You don't have any characters.")
+                    elif category.lower() == "stats":
+                        # Display stats, hp, ac, exp, and stats
+                        for key, value in character.items():
+                            if key != "name" and key in ["hp", "ac", "exp", "age", "height", "weight", "eyes", "skin", "hair"]:
+                                if isinstance(value, dict):
+                                    for sub_key, sub_value in value.items():
+                                        info_message += f"{sub_key.capitalize()}: {sub_value}\n"
+                                else:
+                                    info_message += f"{key.capitalize()}: {value}\n"
+                    elif category.lower() == "appearance":
+                        # Display appearance, race, class, and background
+                        for key, value in character.items():
+                            if key != "name" and key in ["appearance", "race", "class", "background"]:
+                                if isinstance(value, dict):
+                                    for sub_key, sub_value in value.items():
+                                        info_message += f"{sub_key.capitalize()}: {sub_value}\n"
+                                else:
+                                    info_message += f"{key.capitalize()}: {value}\n"
+                    else:
+                        await message.channel.send(f"Invalid category. Please use `{p}characterinfo <name> @user all`, `{p}characterinfo <name> @user stats`, or `{p}characterinfo <name> @user appearance`.")
+                        return
+                    # Display the info for the specified category
+                    embed.description = info_message
+                    await message.channel.send(embed=embed)
+                    return
+            await message.channel.send(f"Character '{name}' not found for the specified player.")
+        else:
+            await message.channel.send("Player not found or player has no characters.")
+    
+
+ # campaign commands
+    if message.content.startswith('!campaign'):
+        command = message.content.split(' ')
+        if len(command) == 1:
+            await message.channel.send('Please use a subcommand: create, join, or invite')
+            return
+
+        subcommand = command[1]
+
+        if subcommand == 'create':
+            if len(command) >= 4:
+                name = command[2]
+                password = command[3]
+                campaigns[name] = password
+                with open('campaigns.txt', 'a') as file:
+                    file.write(f'{name} {password}\n')
+                await message.channel.send(f'Campaign "{name}" created with password "{password}"')
+
+        elif subcommand == 'join':
+            if len(command) >= 5:
+                character_name = command[2]
+                campaign_name = command[3]
+                password = command[4]
+                
+                # Check if character and campaign exist, and if the password is correct
+                if character_name in character_data and campaign_name in campaigns and campaigns[campaign_name] == password:
+                    await message.channel.send(f'Character "{character_name}" joined the campaign "{campaign_name}"!')
+                    # Add your logic here for associating the character with the campaign
+                else:
+                    await message.channel.send('Invalid character name, campaign name, or password.')
+
+        elif subcommand == 'invite':
+            if len(command) >= 3:
+                person = command[2]
+                creator = message.author.mention
+                await message.channel.send(f'{person}, {creator} has invited you to join a campaign!')
+              
+        elif subcommand == 'delete':
+            if len(command) >= 4:
+                campaign_name = command[2]
+                password = command[3]
+
+                # Check if campaign exists and the provided password is correct
+                if campaign_name in campaigns and campaigns[campaign_name] == password:
+                    del campaigns[campaign_name]
+                    with open('campaigns.txt', 'w') as file:
+                        for name, pwd in campaigns.items():
+                            file.write(f'{name} {pwd}\n')
+                    await message.channel.send(f'Campaign "{campaign_name}" has been deleted.')
+                else:
+                    await message.channel.send('Invalid campaign name or password.')
+
+
 
 # token
 
 
 
 # Your bot token goes here
-token = os.environ['token']
-client.run(token)
+client.run(MY_TOKEN)

@@ -1,0 +1,1 @@
+9999999999{"name": "dndbeyond-websearch", "version": "0.2", "summary": "Search via dndbeyond.com built-in search", "requires_dist": ["requests", "beautifulsoup4"], "requires_python": "", "files": [{"file": "dndbeyond_websearch-0.2-py2.py3-none-any.whl", "hash": "sha256:785b11cf0b4971add6937d94a668b34462e78118070d6ed68bc60e0ba77f3976"}], "yanked": false, "_cache_version": "2.0.0"}
