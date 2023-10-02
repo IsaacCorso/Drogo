@@ -5,8 +5,10 @@
 import replit
 import os
 import re
+import re
 import random
 import discord
+from discord import Embed
 from discord.ext import commands
 import time
 from discord import app_commands
@@ -24,6 +26,59 @@ from easy_pil import Editor, load_image_async, Font
 from discord import File
 from selectmenubuttons.selectmenu import help
 import json
+from PIL import Image, ImageDraw, ImageFont
+from bot_token import MY_TOKEN
+
+
+
+user_campaigns = {}
+campaigns = {}
+used_campaign_names = {}
+used_campaign_combinations = set()
+used_passwords = set()
+used_campaigns = set()
+with open('campaigns.txt', 'r') as file:
+    for line in file:
+        parts = line.strip().split()
+        if len(parts) >= 2:
+            used_campaigns.add(parts[0])  # Assuming campaign name is the first element in each line
+            used_passwords.add(parts[1])  # Assuming password is the second element in each line
+# Initialize user_campaigns dictionary
+user_campaigns = {}
+
+# Read data from campaign_participation.txt and populate user_campaigns dictionary
+with open('campaign_participation.txt', 'r') as file:
+    lines = file.readlines()
+    for line in lines:
+        data = line.strip().split(' ')
+        if len(data) >= 4:
+            user_id, campaign_name, character_name, password = data[:4]
+            user_campaigns[user_id] = campaign_name
+            # You can optionally store character_name and password in your character_data dictionary for later use
+        else:
+            print(f"Invalid line in campaign_participation.txt: {line.strip()}. Skipping.")
+
+
+
+
+# Read and process data from campaigns.txt file
+# Read and process data from campaigns.txt file
+# with open('campaigns.txt', 'r') as file:
+#     for line in file:
+#         parts = line.strip().split()
+#         if len(parts) < 2:
+#             print(f'Invalid line in campaigns.txt: {line.strip()}. Skipping.')
+#             continue
+
+#         name = parts[0]
+#         password = parts[1]
+#         creator_user_id = None
+#         if len(parts) >= 3:
+#             creator_user_id = parts[2]
+
+#         # Process the data as needed, e.g., add it to the campaigns dictionary
+#         campaigns[name] = {"password": password, "creator": creator_user_id}
+
 from bot_token import MY_TOKEN
 
 
@@ -44,7 +99,6 @@ def save_character_data():
 def load_character_data():
     try:
         with open('character_data.json', 'r') as file:
-            print("file is available")
             bob = json.load(file)
             # print(bob)
             return bob
@@ -858,7 +912,7 @@ async def on_message(message):
                     elif category.lower() == "stats":
                         # Display stats, hp, ac, exp, and stats
                         for key, value in character.items():
-                            if key != "name" and key in ["hp", "ac", "exp", "age", "height", "weight", "eyes", "skin", "hair"]:
+                            if key != "name" and key in ["hp", "ac", "exp", "stats"]:
                                 if isinstance(value, dict):
                                     for sub_key, sub_value in value.items():
                                         info_message += f"{sub_key.capitalize()}: {sub_value}\n"
@@ -886,7 +940,7 @@ async def on_message(message):
     
 
  # campaign commands
-    if message.content.startswith('!campaign'):
+    if message.content.startswith(f'{p}campaign'):
         command = message.content.split(' ')
         if len(command) == 1:
             await message.channel.send('Please use a subcommand: create, join, or invite')
@@ -898,30 +952,106 @@ async def on_message(message):
             if len(command) >= 4:
                 name = command[2]
                 password = command[3]
-                campaigns[name] = password
+                creator_user_id = str(message.author.id)
+
+                # Check if the user is already in a campaign
+                if creator_user_id in user_campaigns:
+                    await message.channel.send(f'You are already in a campaign: {user_campaigns[creator_user_id]}. You cannot create another campaign.')
+                    return
+
+                # Check if the campaign name and password are unique
+                if name in used_campaigns and password in used_passwords:
+                    await message.channel.send('A campaign with this name and password already exists. Please choose a different name and password.')
+                    return
+
+                # Rest of your code to create the campaign
+                campaigns[name] = {"password": password, "creator": creator_user_id}
                 with open('campaigns.txt', 'a') as file:
-                    file.write(f'{name} {password}\n')
-                await message.channel.send(f'Campaign "{name}" created with password "{password}"')
+                    file.write(f'{name} {password} {creator_user_id}\n')
+
+                # Add the used campaign name and password to the sets
+                used_campaigns.add(name)
+                used_passwords.add(password)
+                print(f'Debug: Campaign name {name} and password {password} added to used sets.')
+
+                # Associate the creator with the new campaign
+                user_campaigns[creator_user_id] = name
+
+                # Store participation information in campaign_participation.txt
+                with open('campaign_participation.txt', 'a') as participation_file:
+                    participation_file.write(f'{name} {creator_user_id}\n')
+
+                await message.channel.send(f'Campaign "{name}" created with password "{password}". You have been automatically joined into this campaign.')
+            else:
+                await message.channel.send('Invalid command format. Please provide a name and a password for the campaign.')
+
 
         elif subcommand == 'join':
             if len(command) >= 5:
                 character_name = command[2]
                 campaign_name = command[3]
                 password = command[4]
-                
-                # Check if character and campaign exist, and if the password is correct
-                if character_name in character_data and campaign_name in campaigns and campaigns[campaign_name] == password:
-                    await message.channel.send(f'Character "{character_name}" joined the campaign "{campaign_name}"!')
-                    # Add your logic here for associating the character with the campaign
+                user_id = str(message.author.id)
+
+                # Check if the user is already in a campaign
+                if user_id in user_campaigns:
+                    await message.channel.send(f'You are already in a campaign: {user_campaigns[user_id]}. You cannot join another campaign.')
+                    return
+
+                # Check if the character exists and the campaign name and password are valid
+                if character_name in character_data.get(user_id, []) and campaign_name in used_campaigns and password in used_passwords:
+                    await message.channel.send('Invalid campaign name or password.')
                 else:
-                    await message.channel.send('Invalid character name, campaign name, or password.')
+                    # Add logic here for associating the character with the campaign
+                    user_campaigns[user_id] = campaign_name
+                    await message.channel.send(f'<@{user_id}> joined the Campaign "{campaign_name}" with the Character "{character_name}"!')
+
+                    # Update campaign participation file with campaign, character, and password info
+                    with open('campaign_participation.txt', 'a') as file:
+                        file.write(f'{user_id} {campaign_name} {character_name} {password}\n')
+                return
+
+            await message.reply(f'Please use 3 arguments: `character_name`, `campaign_name`, `password`!')
+
+
+
+
+
+
+
+
+
+        elif subcommand == 'leave':
+            user_id = str(message.author.id)
+
+            # Check if the user is in a campaign
+            if user_id not in user_campaigns:
+                await message.channel.send('You are not currently in any campaign.')
+                return
+
+            # Get the campaign the user is in and remove their association
+            campaign_name = user_campaigns[user_id]
+            del user_campaigns[user_id]
+
+            # Update campaign participation file
+            with open('campaign_participation.txt', 'w') as file:
+                for user, campaign in user_campaigns.items():
+                    file.write(f'{user} {campaign}\n')
+
+            await message.channel.send(f'You have left the campaign "{campaign_name}".')
+
+
 
         elif subcommand == 'invite':
             if len(command) >= 3:
                 person = command[2]
+                person_formatted = ''.join(filter(str.isdigit, person))
+                person_formatted = int(person_formatted)
                 creator = message.author.mention
-                await message.channel.send(f'{person}, {creator} has invited you to join a campaign!')
+                await message.channel.send(f'{person_formatted}, {creator} has invited you to join a campaign!')
+                await person_formatted.send("Hello, This is a Test Dm!")
               
+
         elif subcommand == 'delete':
             if len(command) >= 4:
                 campaign_name = command[2]
@@ -936,6 +1066,68 @@ async def on_message(message):
                     await message.channel.send(f'Campaign "{campaign_name}" has been deleted.')
                 else:
                     await message.channel.send('Invalid campaign name or password.')
+
+        elif subcommand == 'info':
+            user_id = str(message.author.id)
+
+            # Check if the user is in a campaign
+            if user_id not in user_campaigns:
+                await message.channel.send('You are not currently in any campaign.')
+                return
+
+            # Get the user's current campaign and character name from the campaign_participation.txt file
+            with open('campaign_participation.txt', 'r') as file:
+                lines = file.readlines()
+                for line in lines:
+                    data = line.strip().split(' ')
+                    if len(data) >= 3 and data[0] == user_id:
+                        campaign_name, character_name = data[1], data[2]
+                        await message.reply(f'You are playing as `{character_name}` in the campaign `{campaign_name}`.')
+                        return
+
+            await message.channel.send('Unable to retrieve character information for the user.')
+
+
+        
+
+
+
+
+
+
+
+
+    # if message.content.startswith(f'{p}character_sheet'):
+    #     name = message.content.split()[1]
+    #     user_id = str(message.author.id)
+
+    #     if user_id in character_data:
+    #         for character in character_data[user_id]:
+    #             if character["name"].lower() == name.lower():
+    #                 sheet_width, sheet_height = 600, 800
+    #                 sheet = Image.new('RGB', (sheet_width, sheet_height), 'white')
+    #                 draw = ImageDraw.Draw(sheet)
+
+    #                 font = ImageFont.truetype("arial.ttf", 24)
+
+    #                 # Draw character information on the sheet
+    #                 y_position = 50
+    #                 for key, value in character.items():
+    #                     if key != "name":
+    #                         info_text = f"{key.capitalize()}: {value}"
+    #                         draw.text((50, y_position), info_text, fill='black', font=font)
+    #                         y_position += 50
+
+    #                 sheet.save("character_sheet.png")
+
+    #                 with open("character_sheet.png", "rb") as file:
+    #                     character_sheet = discord.File(file)
+    #                     await message.channel.send(file=character_sheet)
+    #                 return
+    #         await message.channel.send(f"Character '{name}' not found.")
+    #     else:
+    #         await message.channel.send("You don't have any characters.")
+
 
 
 
