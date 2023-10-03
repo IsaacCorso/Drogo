@@ -4,3 +4,8 @@
 .upm
 **/__pycache__/**
 bot_token.py
+campaign_participation.txt
+campaigns.txt
+character_data.json
+cities-1.jpeg
+/categories/**
